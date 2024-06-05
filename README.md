@@ -5,6 +5,7 @@ Show kana an translation for japanese text under cursor
 python3 -m venv venv
 . ven/bin/activate
 pip install -r requirements.txt
+pip install jamdict-data
 python translator.py
 ```
 
@@ -18,6 +19,7 @@ Install tesseract `https://github.com/tesseract-ocr/tesseract` with the japanese
 <wherever your python.exe is> -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
+pip install jamdict-data
 python translator.py
 ```
 
