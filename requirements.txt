@@ -1,0 +1,7 @@
+wheel
+pytesseract
+pillow
+pykakasi
+jamdict
+jamdict-data
+pyautogui
