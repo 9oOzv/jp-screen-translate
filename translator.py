@@ -125,7 +125,6 @@ def run():
         set(all_words(text)),
         key=lambda w: len(w)
     )
-    print()
     for word in words:
         translations = jam.lookup(word)
         for v in translations.entries:
