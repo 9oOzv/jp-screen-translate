@@ -46,6 +46,7 @@ class KanjiTranslator:
         kanji_sequences = sorted(
             self.find_kanji_sequences(text),
             key=len,
+            reverse=True
         )
         return (
             info
