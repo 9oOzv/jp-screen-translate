@@ -32,6 +32,7 @@ def make_column(text, width, whitespace=' ', num_lines=0):
     return '\n'.join(
         (
             line
+            .strip(f' {whitespace}')
             .ljust(width, whitespace)
             .replace(' ', whitespace)
         )
