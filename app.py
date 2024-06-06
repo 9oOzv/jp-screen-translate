@@ -6,21 +6,19 @@ from time import (
     time
 )
 import inspect
-import jamdict
 import os
 import pyautogui
 import pytesseract
-import re
+import tkinter as tk
 from util import (
     first,
     on_windows,
-    all_substrings,
-    clear,
-    strings,
     combine_columns,
-    make_column
+    make_column,
+    clear_tty
 )
-import tkinter as tk
+from kanji_translator import KanjiTranslator
+from itertools import islice
 
 
 FWS = '　'
@@ -81,50 +79,6 @@ class TkTooltip(tk.Tk):
         super().update_idletasks()
 
 
-class KanjiTranslator:
-
-    def __init__(self):
-        self.jam = jamdict.Jamdict()
-
-    @staticmethod
-    def _jdm_entry_to_dict(entry):
-        return {
-            'kanji': strings(entry.kanji_forms),
-            'kana': strings(entry.kana_forms),
-            'gloss': [
-                g for sense in entry.senses
-                for g in strings(sense.gloss)
-            ]
-        }
-
-    @staticmethod
-    def find_kanji_sequences(text):
-        return (
-            s
-            for part in re.split(r'[^一-龯]{2,}', text)
-            if re.match(r'[一-龯]', part)
-            for s in all_substrings(part)
-        )
-
-    def kanji_info(self, kanji):
-        entries = self.jam.lookup(kanji).entries or []
-        return (
-            self._jdm_entry_to_dict(entry)
-            for entry in entries
-        )
-
-    def text_kanji_info(self, text):
-        kanji_sequences = sorted(
-            self.find_kanji_sequences(text),
-            key=len,
-        )
-        return (
-            info
-            for kanji in kanji_sequences
-            for info in self.kanji_info(kanji)
-        )
-
-
 class App:
     """
     Capture and translate kanji from the screen.
@@ -132,12 +86,17 @@ class App:
     Args:
         capture_size_x (int): The width of the capture region.
         capture_size_y (int): The height of the capture region.
-        capture_threshold (int): The maximum distance from the last capture position to trigger a new capture.
+        capture_threshold (int): The maximum distance from the last capture
+            position to trigger a new capture.
         interval (float): The time in seconds to wait between captures.
+        force_interval (float): The time in seconds to wait before forcing a
+            new capture.
+        gui (bool): Whether to show a tooltip with the translation.
+        clear_tty (bool): Whether to clear terminal between prints.
     """
 
-    capture_size_x = 128
-    capture_size_y = 64
+    capture_size_x = 160
+    capture_size_y = 80
     capture_offset_x = 0
     capture_offset_y = -16
     prev_capture_time = 0
@@ -149,6 +108,8 @@ class App:
     _tooltip = None
     fps = 24
     gui = False
+    clear_tty = False
+    max_entries = 8
 
     def __init__(
         self,
@@ -160,7 +121,9 @@ class App:
         capture_threshold: int = None,
         interval: float = None,
         force_interval: float = None,
-        gui: bool = None
+        gui: bool = None,
+        clear_tty: bool = False,
+        max_entries: int = None
     ):
         self.capture_size_x = capture_size_x or self.capture_size_x
         self.capture_size_y = capture_size_y or self.capture_size_y
@@ -173,6 +136,8 @@ class App:
         self.interval = interval or self.interval
         self.force_interval = force_interval or self.force_interval
         self.gui = gui or self.gui
+        self.clear_tty = clear_tty or self.clear_tty
+        self.max_entries = max_entries or self.max_entries
         self.setup_tesseract()
 
     @staticmethod
@@ -199,7 +164,7 @@ class App:
             or not self.near_last_capture(x, y)
         )
         if not should_capture:
-            return
+            return None
         self.prev_capture_time = time()
         self.prev_capture_x = x
         self.prev_capture_y = y
@@ -211,23 +176,25 @@ class App:
         )
         screenshot = ImageGrab.grab(region)
         text = pytesseract.image_to_string(screenshot, lang='jpn')
-        return text
+        return KanjiTranslator.only_kanji_kana(text)
 
     def _run(self):
-        text = self.next_capture()
-        if text is None:
+        captured = self.next_capture()
+        if not captured:
             return
-        translator = KanjiTranslator()
-        translations = translator.text_kanji_info(text)
+        self.captured = captured
+        infos = self.translator.text_kanji_info(self.captured)
+        self.infos = infos
         texts = []
-        for t in translations:
-            kanji = FWS.join(t['kanji'])
-            kana = FWS.join(t['kana'])
-            glosses = '  '.join(t['gloss'])
+        # limit generator output to max_entries
+        for info in islice(infos, self.max_entries):
+            kanji = FWS.join(info['kanji'])
+            kana = FWS.join(info['kana'])
+            gloss = '  '.join(info['gloss'])
             tmp_columns = [
                 make_column(kanji, 4),
                 make_column(kana, 6),
-                make_column(glosses, 60)
+                make_column(gloss, 60)
             ]
             num_lines = max(
                 c.count('\n') + 1
@@ -236,14 +203,24 @@ class App:
             text = combine_columns(
                 make_column(kanji, 4, whitespace=FWS, num_lines=num_lines),
                 make_column(kana, 6, whitespace=FWS, num_lines=num_lines),
-                make_column(glosses, 60, num_lines=num_lines),
+                make_column(gloss, 60, num_lines=num_lines),
                 separator='  '
             )
             texts.append(text)
         self.text = '\n'.join(texts)
-        print(self.text)
+        if not self.text:
+            return
+        if self.clear_tty:
+            clear_tty()
+        else:
+            print()
+        to_print = '\n'.join([
+            self.captured,
+            self.text
+        ])
+        print(to_print)
         if self.gui:
-            self.tooltip.set_text(text)
+            self.tooltip.set_text(to_print)
 
     def _wait(self):
         t = 1.0 / self.fps
@@ -253,6 +230,7 @@ class App:
             sleep(t)
 
     def run(self):
+        self.translator = KanjiTranslator()
         try:
             while True:
                 self._run()

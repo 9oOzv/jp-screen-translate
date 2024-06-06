@@ -1,6 +1,6 @@
-from dataclasses import dataclass
 from textwrap import wrap
 import os
+import re
 
 
 def first(iterable):
@@ -18,7 +18,7 @@ def all_substrings(s):
     ]
 
 
-def clear():
+def clear_tty():
     os.system('cls' if on_windows() else 'clear')
 
 

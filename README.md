@@ -8,7 +8,7 @@ May or may not work. I have not tested on linux yet.
 python3 -m venv venv
 . ven/bin/activate
 pip install -r requirements.txt
-python translator.py (gui|cli)
+python app.py (gui|cli)
 ```
 
 You will also need
@@ -30,15 +30,15 @@ You will also need
 <wherever your python.exe is> -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-python translator.py (gui|cli)
+python app.py (gui|cli)
 ```
 
 **Commands**
 
 ```bash
-python translator.py cli # Print translations to the console
-python translator.py gui # Show a tooltip following the cursor
-python translator.py --help # Show help
-python translator.py <command> --help # Show help
+python app.py cli # Print translations to the console
+python app.py gui # Show a tooltip following the cursor
+python app.py --help # Show help
+python app.py <command> --help # Show help
 ```
 
