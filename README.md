@@ -1,23 +1,44 @@
 Show kana an translation for japanese text under cursor
 
 **On Linux**
+
+May or may not work. I have not tested on linux yet.
+
 ```bash
 python3 -m venv venv
 . ven/bin/activate
 pip install -r requirements.txt
-python translator.py
+python translator.py (gui|cli)
 ```
 
-Probably need to install tesseract with the japanese options. I dont know. I am currently running this on windows. Maybe your distro has a package.
+You will also need
+* Tesseract
+  * [https://tesseract-ocr.github.io/tessdoc/Installation.html#ubuntu](https://tesseract-ocr.github.io/tessdoc/Installation.html#ubuntu)
+  * Check the options for japanese language.
+
 
 **On Windows** 
 
-Install tesseract `https://github.com/tesseract-ocr/tesseract` with the japanese options. Use the 3rd party binaries or whatever. Either use the standard install location or set the environment variable `TESSERACT_PATH` to the location of the tesseract executable.
+You will also need
+* Tesseract
+  * [https://tesseract-ocr.github.io/tessdoc/Installation.html#windows](https://tesseract-ocr.github.io/tessdoc/Installation.html#windows)
+  * Check the options for japanese language.
+  * Either use the installer default path or set the environment variable `TESSERACT_PATH` to the location of the tesseract executable.
+    * The `TESSERACT_PATH`, if you install tesseract in non-standard location, may or may not work. I have not tested it.
 
 ```cmd
 <wherever your python.exe is> -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-python translator.py
+python translator.py (gui|cli)
+```
+
+**Commands**
+
+```bash
+python translator.py cli # Print translations to the console
+python translator.py gui # Show a tooltip following the cursor
+python translator.py --help # Show help
+python translator.py <command> --help # Show help
 ```
 
