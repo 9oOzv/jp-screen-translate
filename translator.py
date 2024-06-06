@@ -1,7 +1,10 @@
 from fire import Fire
 from PIL import ImageGrab
 from pathlib import Path
-from time import sleep
+from time import (
+    sleep,
+    time
+)
 import inspect
 import jamdict
 import os
@@ -84,10 +87,6 @@ class KanjiTranslator:
         self.jam = jamdict.Jamdict()
 
     @staticmethod
-    def is_kanji(char):
-        return '\u4e00' <= char <= '\u9faf'
-
-    @staticmethod
     def _jdm_entry_to_dict(entry):
         return {
             'kanji': strings(entry.kanji_forms),
@@ -102,8 +101,8 @@ class KanjiTranslator:
     def find_kanji_sequences(text):
         return (
             s
-            for part in re.split(r'[^一-龯]+', text)
-            if re.match(r'[一-龯]+', part)
+            for part in re.split(r'[^一-龯]{2,}', text)
+            if re.match(r'[一-龯]', part)
             for s in all_substrings(part)
         )
 
@@ -139,29 +138,40 @@ class App:
 
     capture_size_x = 128
     capture_size_y = 64
+    capture_offset_x = 0
+    capture_offset_y = -16
+    prev_capture_time = 0
     prev_capture_x = 0
     prev_capture_y = 0
     capture_threshold = 16
     interval = 0.5
+    force_interval = 2.0
     _tooltip = None
     fps = 24
     gui = False
 
     def __init__(
         self,
+        *args,
         capture_size_x: int = None,
         capture_size_y: int = None,
+        capture_offset_x: int = None,
+        capture_offset_y: int = None,
         capture_threshold: int = None,
         interval: float = None,
+        force_interval: float = None,
         gui: bool = None
     ):
         self.capture_size_x = capture_size_x or self.capture_size_x
         self.capture_size_y = capture_size_y or self.capture_size_y
+        self.capture_offset_x = capture_offset_x or self.capture_offset_x
+        self.capture_offset_y = capture_offset_y or self.capture_offset_y
         self.new_capture_threshold = (
                 capture_threshold
                 or self.capture_threshold
         )
         self.interval = interval or self.interval
+        self.force_interval = force_interval or self.force_interval
         self.gui = gui or self.gui
         self.setup_tesseract()
 
@@ -184,15 +194,20 @@ class App:
 
     def next_capture(self):
         x, y = pyautogui.position()
-        if self.near_last_capture(x, y):
+        should_capture = (
+            time() > self.prev_capture_time + self.force_interval
+            or not self.near_last_capture(x, y)
+        )
+        if not should_capture:
             return
+        self.prev_capture_time = time()
         self.prev_capture_x = x
         self.prev_capture_y = y
         region = (
-            x - self.capture_size_x // 2,
-            y - self.capture_size_y // 2,
-            x + self.capture_size_x // 2,
-            y + self.capture_size_y // 2
+            x - self.capture_size_x // 2 + self.capture_offset_x,
+            y - self.capture_size_y // 2 + self.capture_offset_y,
+            x + self.capture_size_x // 2 + self.capture_offset_x,
+            y + self.capture_size_y // 2 + self.capture_offset_y,
         )
         screenshot = ImageGrab.grab(region)
         text = pytesseract.image_to_string(screenshot, lang='jpn')
@@ -204,7 +219,6 @@ class App:
             return
         translator = KanjiTranslator()
         translations = translator.text_kanji_info(text)
-        clear()
         texts = []
         for t in translations:
             kanji = FWS.join(t['kanji'])
@@ -226,9 +240,10 @@ class App:
                 separator='  '
             )
             texts.append(text)
-        text = '\n'.join(texts)
-        print(text)
-        self.tooltip.set_text(text)
+        self.text = '\n'.join(texts)
+        print(self.text)
+        if self.gui:
+            self.tooltip.set_text(text)
 
     def _wait(self):
         t = 1.0 / self.fps
@@ -247,26 +262,31 @@ class App:
 
     @property
     def tooltip(self):
+        if not self.gui:
+            return None
         if self._tooltip:
             return self._tooltip
         self._tooltip = TkTooltip()
         return self._tooltip
 
 
-
-
-
-
 def cli(*args, **kwargs):
-    return App(*args, **kwargs).run()
-
-def gui(*args, **kwargs):
+    if 'force_interval' not in kwargs:
+        kwargs['force_interval'] = 30.0
     app = App(*args, **kwargs)
-    app.gui = True
     return app.run()
+
 
 cli.__doc__ = inspect.getdoc(App)
 cli.__signature__ = inspect.signature(App)
+
+
+def gui(*args, **kwargs):
+    if 'gui' not in kwargs:
+        kwargs['gui'] = True
+    app = App(*args, **kwargs)
+    return app.run()
+
 
 gui.__doc__ = inspect.getdoc(App)
 gui.__signature__ = inspect.signature(App)
