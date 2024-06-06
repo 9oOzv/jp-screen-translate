@@ -33,38 +33,47 @@ if 'TESSERACT_PATH' in os.environ:
 
 
 class TkTooltip(tk.Tk):
-    offset_x = 32
-    offset_y = 32
+    offset_x = 64
+    offset_y = 64
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        bg = 'black'
+        fg = 'white'
         self.overrideredirect(True)
-        self.attributes('-alpha', 0.7)
+        self.attributes('-alpha', 0.9)
         self.attributes('-topmost', True)
-        self.text_widget = tk.Text(
+        self.title("Transparent Window")
+        self.configure(bg=bg)
+        self.label = tk.Label(
             self,
-            wrap=tk.WORD,
-            font=('Helvetica', 12)
+            text='Nothing here',
+            font=("Helvetica", 12),
+            justify='left',
+            bg=bg,
+            fg=fg
         )
-        self.text_widget.pack()
-        self.text_widget.insert(tk.END, 'Hello, world!')
-
-    def calculate_needed_size_px(self):
-        lines = self.text_widget.get(1.0, tk.END).splitlines()
-        width = max(len(line) for line in lines)
-        height = len(lines)
-        char_width = self.text_widget.winfo_width() // width
-        char_height = self.text_widget.winfo_height() // height
-        return char_width, char_height
-
+        self.update()
 
     def set_text(self, text):
-        self.text_widget.delete(1.0, tk.END)
-        self.text_widget.insert(tk.END, text)
+        self.label.config(text=text)
+        self.label.pack(anchor='w')
+        self.update()
 
     def update(self):
         x, y = pyautogui.position()
-        self.geometry(f'+{x+self.offset_x}+{y+self.offset_y}')
+        x += self.offset_x
+        y += self.offset_y
+        w = self.label.winfo_reqwidth()
+        h = self.label.winfo_reqheight()
+        # Make sure the window is not outside the screen
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        if x + w > screen_width:
+            x -= w + 2 * self.offset_x
+        if y + h > screen_height:
+            y -= h + 2 * self.offset_y
+        self.geometry(f'{w}x{h}+{x}+{y}')
         super().update()
         super().update_idletasks()
 
@@ -213,7 +222,8 @@ class App:
             text = combine_columns(
                 make_column(kanji, 4, whitespace=FWS, num_lines=num_lines),
                 make_column(kana, 6, whitespace=FWS, num_lines=num_lines),
-                make_column(glosses, 60, num_lines=num_lines)
+                make_column(glosses, 60, num_lines=num_lines),
+                separator='  '
             )
             texts.append(text)
         text = '\n'.join(texts)
