@@ -45,7 +45,7 @@ class KanjiTranslator:
             s
             for part in re.split(r'[^一-龯]{2,}', text)
             if re.search(r'[一-龯]', part)
-            for s in all_substrings(part)
+            for s in all_substrings(part, 6)
         ]
         log.debug({
             'message': 'Kanji splits',

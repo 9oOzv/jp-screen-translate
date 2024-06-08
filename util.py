@@ -15,10 +15,10 @@ def on_windows():
     return os.name == 'nt'
 
 
-def all_substrings(s):
+def all_substrings(s: Iterable, n: int = 6):
     return [
         s[i:j] for i in range(len(s))
-        for j in range(i + 1, len(s) + 1)
+        for j in range(i, i + n)
     ]
 
 
