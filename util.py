@@ -105,6 +105,9 @@ def scale_image(
         int(img.height * scale),
     ))
 
+def adjust_image(img: Image):
+    return img.quantize(4).convert('RGB')
+
 
 class Color:
     def __init__(self, r, g, b):

@@ -8,19 +8,19 @@ May or may not work. I have not tested on linux yet.
 python3 -m venv venv
 . ven/bin/activate
 pip install -r requirements.txt
+pip install easyocr # If you want to use easyocr
+pip install pytesseract # If you want to use pytesseract
 python app.py (gui|cli)
 ```
 
-You will also need
-* Tesseract
+* If using Tesseract for OCR, it needs to be installed separately.
   * [https://tesseract-ocr.github.io/tessdoc/Installation.html#ubuntu](https://tesseract-ocr.github.io/tessdoc/Installation.html#ubuntu)
   * Check the options for japanese language.
 
 
 **On Windows** 
 
-You will also need
-* Tesseract
+* If using Tesseract for OCR, it needs to be installed separately.
   * [https://tesseract-ocr.github.io/tessdoc/Installation.html#windows](https://tesseract-ocr.github.io/tessdoc/Installation.html#windows)
   * Check the options for japanese language.
   * Either use the installer default path or set the environment variable `TESSERACT_PATH` to the location of the tesseract executable.
@@ -30,6 +30,8 @@ You will also need
 <wherever your python.exe is> -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
+pip install easyocr # If you want to use easyocr
+pip install pytesseract # If you want to use pytesseract
 python app.py (gui|cli)
 ```
 

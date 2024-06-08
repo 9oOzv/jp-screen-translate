@@ -11,7 +11,6 @@ from time import (
 )
 import os
 import pyautogui
-import pytesseract
 import tkinter as tk
 from util import (
     first,
@@ -23,6 +22,7 @@ from util import (
     nothing,
     merge_texts,
     scale_image,
+    adjust_image
 )
 from kanji_translator import KanjiTranslator
 from itertools import islice
@@ -39,6 +39,7 @@ from log import (
 from command import Commands
 import cProfile as profile
 from pstats import SortKey
+import numpy
 
 log = getLogger('app')
 
@@ -194,6 +195,10 @@ class App:
     pretty = False
     capture_preview = True
     preview = None
+    pytesseract = None
+    easyocr_reader = None
+    tesseract = None
+    easyocr = None
 
     def __init__(
         self,
@@ -216,7 +221,9 @@ class App:
         trace: bool = None,
         profile: bool = None,
         pretty: bool = None,
-        capture_preview: bool = None,
+        capture_preview: bool | None = None,
+        tesseract: bool | None = None,
+        easyocr: bool | None = None
     ):
         self.capture_size_x = capture_size_x or self.capture_size_x
         self.capture_size_y = capture_size_y or self.capture_size_y
@@ -240,17 +247,35 @@ class App:
         )
         self.pretty = pretty or self.pretty
         self.capture_preview = capture_preview or self.capture_preview
+        if tesseract:
+            self.setup_tesseract()
+        if easyocr:
+            self.setup_easyocr()
+        if not self.tesseract and not self.easyocr:
+            self.auto_select_ocr()
         configure_logger('app', level=self.log_level, pretty=self.pretty)
-        self.setup_tesseract()
 
-    @staticmethod
-    def setup_tesseract():
+    def setup_easyocr(self):
+        from easyocr import Reader
+        self.easyocr_reader = Reader(['ja'])
+        self.easyocr = True
+
+    def setup_tesseract(self):
+        import pytesseract
+        self.pytesseract = pytesseract
         tesseract_exe = first([
             p for p in TESSERACT_SEARCH_PATHS
             if p.exists() and p.is_file()
         ])
         if on_windows():
-            pytesseract.pytesseract.tesseract_cmd = str(tesseract_exe)
+            self.pytesseract.pytesseract.tesseract_cmd = str(tesseract_exe)
+        self.tesseract = True
+
+    def auto_select_ocr(self):
+        try:
+            self.setup_easyocr()
+        except ImportError:
+            self.setup_tesseract()
 
     def near_last_capture(self, x, y):
         return (
@@ -259,11 +284,6 @@ class App:
             and y >= self.prev_capture_y - self.capture_threshold
             and y <= self.prev_capture_y + self.capture_threshold
         )
-
-    def _sizes(self, img: Image):
-        half = scale_image(img, 0.5)
-        fourth = scale_image(img, 0.25)
-        return [img, half, fourth]
 
     def _capture(self):
         self.prev_capture_time = time()
@@ -277,19 +297,66 @@ class App:
         )
         with self.tooltip.hidden() if self.gui else nothing():
             img = ImageGrab.grab(region)
-        self.captures = self._sizes(img)
         if self.capture_preview:
-            self.preview = scale_image(img, max_dimension=120)
-        text = merge_texts([
-            pytesseract.image_to_string(
+            self.preview = scale_image(
                 img,
-                lang='jpn',
-                config='--oem 1 --psm 11'
+                max_dimension=120
             )
-            for img in self.captures
-        ])
+        text = self._ocr(img)
         return KanjiTranslator.only_kanji_kana(text)
 
+    def _tesseract(self, img: Image):
+        log.debug({
+            'message': 'Running Tesseract',
+            'img.size': img.size,
+        })
+        if not self.pytesseract:
+            import pytesseract
+            self.pytesseract = pytesseract
+            tesseract_exe = first([
+                p for p in TESSERACT_SEARCH_PATHS
+                if p.exists() and p.is_file()
+            ])
+            if on_windows():
+                self.pytesseract.pytesseract.tesseract_cmd = str(tesseract_exe)
+        return [
+            self.pytesseract.image_to_string(
+                img,
+                lang='jpn',
+                config=f'--psm {psm}'
+            )
+            for psm in [5, 6]
+        ]
+
+    def _easyocr(self, img: Image):
+        log.debug({
+            'message': 'Running EasyOCR',
+            'img.size': img.size,
+        })
+        if not self.easyocr_reader:
+            from easyocr import Reader
+            self.easyocr_reader = Reader(['ja'])
+        texts = [
+            v[1]
+            for v in
+            self.easyocr_reader.readtext(numpy.array(img))
+        ]
+        return texts
+
+    def _ocr(self, img: Image):
+        ocrs = []
+        if self.tesseract:
+            ocrs.append(self._tesseract)
+        if self.easyocr:
+            ocrs.append(self._easyocr)
+        if not ocrs:
+            raise ValueError('No OCR engines enabled')
+        texts = [ t for ocr in ocrs for t in ocr(img) ]
+        log.debug({
+            'message': 'OCR results',
+            'texts': texts
+        })
+        return merge_texts(texts)
 
     def should_capture(self):
         self.x, self.y = pyautogui.position()
