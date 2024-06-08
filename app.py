@@ -203,36 +203,30 @@ class App:
     def __init__(
         self,
         *args,
-        capture_size_x: int = None,
-        capture_size_y: int = None,
-        capture_offset_x: int = None,
-        capture_offset_y: int = None,
-        capture_threshold: int = None,
-        interval: float = None,
-        force_interval: float = None,
-        gui: bool = None,
-        clear_tty: bool = None,
-        max_entries: int = None,
-        gui_colors: list[str] = [
-            Color.random_hsluv(lum=75, sat=100)
-            for _ in range(8)
-        ],
-        debug: bool = None,
-        trace: bool = None,
-        profile: bool = None,
-        pretty: bool = None,
-        capture_preview: bool | None = None,
-        tesseract: bool | None = None,
-        easyocr: bool | None = None
+        capture_size_x: int = capture_size_x,
+        capture_size_y: int = capture_size_y,
+        capture_offset_x: int = capture_offset_x,
+        capture_offset_y: int = capture_offset_y,
+        capture_threshold: int = capture_threshold,
+        interval: float = interval,
+        force_interval: float = force_interval,
+        gui: bool = gui,
+        clear_tty: bool = clear_tty,
+        max_entries: int = max_entries,
+        gui_colors: gui_colors,
+        debug: bool = debug,
+        trace: bool = trace,
+        profile: bool = profile,
+        pretty: bool = pretty,
+        capture_preview: bool | None = capture_preview,
+        tesseract: bool | None = tesseract,
+        easyocr: bool | None = easyocr,
     ):
-        self.capture_size_x = capture_size_x or self.capture_size_x
-        self.capture_size_y = capture_size_y or self.capture_size_y
-        self.capture_offset_x = capture_offset_x or self.capture_offset_x
-        self.capture_offset_y = capture_offset_y or self.capture_offset_y
-        self.new_capture_threshold = (
-                capture_threshold
-                or self.capture_threshold
-        )
+        self.capture_size_x = capture_size_x
+        self.capture_size_y = capture_size_y
+        self.capture_offset_x = capture_offset_x
+        self.capture_offset_y = capture_offset_y
+        self.new_capture_threshold = (capture_threshold)
         self.interval = interval or self.interval
         self.force_interval = force_interval or self.force_interval
         self.gui = gui or self.gui
