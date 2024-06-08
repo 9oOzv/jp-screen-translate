@@ -2,8 +2,9 @@ wheel
 setuptools
 pytesseract
 pillow
-pykakasi
 jamdict
 git+https://github.com/neocl/jamdict_data.git@refs/pull/2/merge
 pyautogui
 fire
+hsluv
+colorama

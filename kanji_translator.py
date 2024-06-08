@@ -1,22 +1,35 @@
-import jamdict
+from jamdict import Jamdict
+from jamdict.jmdict import JMDEntry
 import re
 from util import (
     all_substrings,
-    strings,
+    strings
 )
+from logging import getLogger
+from typing import (
+    Iterable,
+    TypeAlias
+)
+
+
+log = getLogger('app')
+
+KanjiInfos: TypeAlias = Iterable[dict[str, list[str]]]
 
 
 class KanjiTranslator:
 
     def __init__(self):
-        self.jam = jamdict.Jamdict()
+        self.jam = Jamdict()
 
     @staticmethod
-    def only_kanji_kana(text):
+    def only_kanji_kana(text: str) -> str:
         return re.sub(r'[^一-龯ぁ-んァ-ン]', '', text)
 
     @staticmethod
-    def _jdm_entry_to_dict(entry):
+    def _jdm_entry_to_dict(
+        entry: JMDEntry
+    ) -> dict[str, list[str]]:
         return {
             'kanji': strings(entry.kanji_forms),
             'kana': strings(entry.kana_forms),
@@ -27,15 +40,21 @@ class KanjiTranslator:
         }
 
     @staticmethod
-    def find_kanji_sequences(text):
-        return (
+    def find_kanji_sequences(text: str) -> Iterable[str]:
+        splits = [
             s
             for part in re.split(r'[^一-龯]{2,}', text)
-            if re.match(r'[一-龯]', part)
+            if re.search(r'[一-龯]', part)
             for s in all_substrings(part)
-        )
+        ]
+        log.debug({
+            'message': 'Kanji splits',
+            'text': text,
+            'splits': splits,
+        })
+        return splits
 
-    def kanji_info(self, kanji):
+    def kanji_info(self, kanji: str) -> KanjiInfos:
         entries = self.jam.lookup(kanji).entries or []
         return (
             self._jdm_entry_to_dict(entry)
@@ -53,4 +72,3 @@ class KanjiTranslator:
             for kanji in kanji_sequences
             for info in self.kanji_info(kanji)
         )
-
