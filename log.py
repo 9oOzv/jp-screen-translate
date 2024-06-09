@@ -34,9 +34,9 @@ class JSONFormatter(Formatter):
             return '\n'.join([
                 (
                     f'{Fore.MAGENTA if level > INFO else Fore.CYAN}{Style.BRIGHT}'
-                    f'[{message["timestamp"]}]'
-                    f' {message["level"]}:'
-                    f' {message["message"]}'
+                    f'[{message.get("timestamp", "")}]'
+                    f'{message.get("level", "")}:'
+                    f'{message.get("message", "")}'
                     f'{Style.RESET_ALL}'
                 ),
                 *[
@@ -69,7 +69,7 @@ class JSONFormatter(Formatter):
 
 
 def configure_logger(name=None, level=INFO, pretty=False):
-    log = getLogger(name)
+    log = getLogger(name) if name else getLogger()
     log.setLevel(level)
     handler = StreamHandler(stream=sys.stderr)
     handler.setLevel(level)
@@ -77,7 +77,7 @@ def configure_logger(name=None, level=INFO, pretty=False):
     log.addHandler(handler)
 
     def trace(msg, *args, **kwargs):
-        log.log(TRACE, msg, *args, **kwargs)
+        log._log(TRACE, msg, args, **kwargs)
     log.trace = trace
 
 configure_logger()

@@ -39,8 +39,8 @@ from log import (
     TRACE
 )
 from command import Commands
-import cProfile as profile
-from pstats import SortKey
+import pstats
+import cProfile
 import numpy
 from textwrap import wrap
 
@@ -192,7 +192,8 @@ class App:
         gui_colors (list[str]): The colors to use for the tooltip entries.
         debug (bool): Whether to log debug messages.
         trace (bool): Whether to log trace messages.
-        profile (bool): Whether to profile the application.
+        profile (bool | str): Whether to profile the code. If a string is
+            provided, it will be used as the file name for the profile stats.
         pretty (bool): Whether to use pretty printing for logs.
         capture_preview (bool): Whether to show a preview of the capture in
             the tooltip.
@@ -206,8 +207,8 @@ class App:
         capture_column (int): The width of the capture column in the tooltip.
     """
 
-    capture_size_x: int = 240
-    capture_size_y: int = 120
+    capture_size_x: int = 160
+    capture_size_y: int = 100
     capture_offset_x: int = 0
     capture_offset_y: int = -16
     prev_capture_time: int = 0
@@ -225,7 +226,7 @@ class App:
         Color.random_hsluv(lum=75, sat=100)
         for _ in range(8)
     ]
-    profile: bool = False
+    profile: bool | str = False
     pretty: bool = False
     capture_preview: bool = True
     pytesseract = None
@@ -239,7 +240,7 @@ class App:
     kanji_column: int = 4
     kana_column: int = 6
     gloss_column: int = 60
-    capture_column: int = 40
+    capture_column: int = 36
     text: str = ''
     capture_text: str = ''
 
@@ -259,7 +260,7 @@ class App:
         gui_colors: Iterable[Color] = gui_colors,
         debug: bool = debug,
         trace: bool = trace,
-        profile: bool = profile,
+        profile: bool | str = profile,
         pretty: bool = pretty,
         capture_preview: bool | None = capture_preview,
         tesseract: bool | None = tesseract,
@@ -305,6 +306,7 @@ class App:
         self.gloss_column = gloss_column
         self.capture_column = capture_column
         configure_logger('app', level=self.log_level, pretty=self.pretty)
+        configure_logger(None, level=self.log_level, pretty=self.pretty)
 
     def setup_easyocr(self):
         from easyocr import Reader
@@ -364,7 +366,7 @@ class App:
             self._ocr(img)
             for img in self.capture.images()
         ])
-        return KanjiTranslator.only_kanji_kana(text)
+        return text
 
     def _tesseract(self, img: Image):
         log.debug({
@@ -439,6 +441,7 @@ class App:
                 return self._capture()
 
     def _loop(self):
+        log.debug({'message': 'Loop'})
         captured = self.next_capture()
         if captured is None:
             return
@@ -454,17 +457,31 @@ class App:
             tmp_columns = [
                 make_column(kanji, self.kanji_column),
                 make_column(kana, self.kana_column),
-                make_column(gloss,self.gloss_column)
+                make_column(gloss, self.gloss_column)
             ]
             num_lines = max(
                 c.count('\n') + 1
                 for c in tmp_columns
             )
             text = combine_columns(
-                make_column(kanji, 4, whitespace=FWS, num_lines=num_lines),
-                make_column(kana, 6, whitespace=FWS, num_lines=num_lines),
-                make_column(gloss, 60, num_lines=num_lines),
-                separator='  '
+                make_column(
+                    kanji,
+                    self.kanji_column,
+                    whitespace=FWS,
+                    num_lines=num_lines
+                ),
+                make_column(
+                    kana,
+                    self.kana_column,
+                    whitespace=FWS,
+                    num_lines=num_lines
+                ),
+                make_column(
+                    gloss,
+                    self.gloss_column,
+                    num_lines=num_lines
+                ),
+                separator='    '
             )
             texts.append(text)
         self.text = '\n'.join(texts)
@@ -534,14 +551,65 @@ class App:
                 self.tooltip.update()
             sleep(t)
 
+    def _print_profile(self):
+        print(
+            '\n'
+            .join(self._profile_lines())
+        )
+
+    def _save_profile(self):
+        with open(self.profile, 'w') as f:
+            f.write(
+                '\n'
+                .join(self._profile_lines())
+            )
+
+    def _profile_lines(self):
+        stat_items = self.profile_stats.stats.items()
+        stats = []
+        for func, (cc, nc, tt, ct, callers) in stat_items:
+            stats.append({
+                'path': func[0],
+                'line': func[1],
+                'func': func[2],
+                'stdname': cc,
+                'calls': nc,
+                'time': tt,
+                'cumulative': ct,
+            })
+        stats = sorted(
+            stats,
+            key=lambda x: x['cumulative'],
+            reverse=True
+        )
+
+        def statline(s):
+            filename = Path(s['path']).name
+            cols = [
+                f'{filename:20.20}',
+                f'{str(s["line"]):4.4}',
+                f'{s["func"]:20.20}',
+                f'{s["cumulative"]:.3f} seconds',
+            ]
+            return '  '.join(cols)
+
+        return [
+            statline(s)
+            for s in stats
+        ]
+
+    def _run_profile(self):
+        with cProfile.Profile() as profiler:
+            self._run()
+        self.profile_stats = pstats.Stats(profiler)
+        if self.profile is True:
+            self._print_profile()
+        else:
+            self._save_profile()
+
     def run(self):
         if self.profile:
-            profile.runctx(
-                'self._run()',
-                globals(),
-                locals(),
-                sort=SortKey.CUMULATIVE
-            )
+            self._run_profile()
         else:
             self._run()
 

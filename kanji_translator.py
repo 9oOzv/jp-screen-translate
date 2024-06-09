@@ -20,11 +20,17 @@ KanjiInfos: TypeAlias = Iterable[dict[str, list[str]]]
 class KanjiTranslator:
 
     def __init__(self):
-        self.jam = Jamdict()
+        self.jam = Jamdict(memory_mode=True)
+
+    _sane_kanji_seq_re = re.compile(r'^([一-龯]+[ぁ-んァ-ン]?)+[ぁ-んァ-ン]?$')
 
     @staticmethod
-    def only_kanji_kana(text: str) -> str:
-        return re.sub(r'[^一-龯ぁ-んァ-ン]', '', text)
+    def sane_kanji_seq(text: str) -> bool:
+        return bool(
+            KanjiTranslator._sane_kanji_seq_re.match(
+                text
+            )
+        )
 
     @staticmethod
     def _jdm_entry_to_dict(
@@ -39,36 +45,64 @@ class KanjiTranslator:
             ]
         }
 
+    _non_kanji_kana_re = re.compile(r'[^一-龯ぁ-んァ-ン]+')
+
     @staticmethod
-    def find_kanji_sequences(text: str) -> Iterable[str]:
-        splits = [
-            s
-            for part in re.split(r'[^一-龯]{2,}', text)
-            if re.search(r'[一-龯]', part)
-            for s in all_substrings(part, 6)
-        ]
-        log.debug({
-            'message': 'Kanji splits',
-            'text': text,
-            'splits': splits,
-        })
-        return splits
+    def jpn_sequences(text: str) -> str:
+        return re.split(
+            KanjiTranslator._non_kanji_kana_re,
+            text
+        )
 
     def kanji_info(self, kanji: str) -> KanjiInfos:
         entries = self.jam.lookup(kanji).entries or []
-        return (
+        return [
             self._jdm_entry_to_dict(entry)
             for entry in entries
+        ]
+
+    @staticmethod
+    def kanji_count(word: str) -> int:
+        return len(
+            [
+                c
+                for c in word
+                if '一' <= c <= '龯'
+            ]
         )
 
+    @staticmethod
+    def info_sort_key(info: dict) -> int:
+        num_kanji = max(
+            KanjiTranslator.kanji_count(k)
+            for k in info['kanji']
+        )
+        num_chars = max(
+            len(k)
+            for k in info['kanji']
+        )
+        return (num_kanji, num_chars)
+
+
     def text_kanji_info(self, text):
-        kanji_sequences = sorted(
-            self.find_kanji_sequences(text),
-            key=len,
+        log.debug({'text': text})
+        jpn_seqs = self.jpn_sequences(text)
+        seqs = set([
+            seq
+            for jpn_seq in jpn_seqs
+            for seq in all_substrings(jpn_seq, 5)
+        ])
+        kanji_seqs = [s for s in seqs if self.sane_kanji_seq(s)]
+        log.trace({'kanji_seqs': kanji_seqs})
+        infos = [
+            info
+            for kanji in kanji_seqs
+            for info in self.kanji_info(kanji)
+        ]
+        sorted_infos = sorted(
+            infos,
+            key=self.info_sort_key,
             reverse=True
         )
-        return (
-            info
-            for kanji in kanji_sequences
-            for info in self.kanji_info(kanji)
-        )
+        log.trace({'sorted_infos': sorted_infos})
+        return sorted_infos

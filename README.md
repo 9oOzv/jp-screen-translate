@@ -44,3 +44,9 @@ python app.py --help # Show help
 python app.py <command> --help # Show help
 ```
 
+
+**CUDA**
+
+For speed, install torch with cuda support as described at [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/)
+
+Not sure if the old torch needs to be uninstalled first. Maybe need to run `pip uninstall torch` first.

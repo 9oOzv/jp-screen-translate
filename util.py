@@ -27,16 +27,17 @@ def clear_tty():
 
 
 def strings(v):
-    return (str(k) for k in v)
+    return [str(k) for k in v]
 
 
 def make_column(text, width, whitespace=' ', num_lines=0):
-    lines = wrap(text, width)
+    text = text.replace(whitespace, ' ')
+    lines = wrap(text, width, break_long_words=False)
     lines.extend([''] * max(num_lines - len(lines), 0))
     return '\n'.join(
         (
             line
-            .strip(f' {whitespace}')
+            .strip()
             .ljust(width, whitespace)
             .replace(' ', whitespace)
         )
