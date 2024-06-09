@@ -376,7 +376,7 @@ class App:
         with self.tooltip.hidden() if self.gui else nothing():
             img = ImageGrab.grab(region)
             self.capture = self._capture_set(img)
-        text = merge_texts([
+        text = ''.join([
             self._ocr(img)
             for img in self.capture.images()
         ])

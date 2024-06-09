@@ -1,5 +1,6 @@
 from PIL import (
     Image,
+    ImageFilter
 )
 from typing import Iterable, TypeAlias
 from util import scale_image
@@ -90,10 +91,6 @@ class CaptureSet:
         ]
 
     def preview(self):
-        _original = scale_image(
-            self.original,
-            max_dimension=self.preview_size
-        )
         _divs = [
             scale_image(
                 div,
@@ -101,19 +98,15 @@ class CaptureSet:
             )
             for div in self.divs()
         ]
-        images = [
-            _original,
-            *_divs
-        ]
         log.debug({
             'message': 'CaptureSet preview',
             'preview_size': self.preview_size,
-            'image sizes': [
+            'image_sizes': [
                 img.size
-                for img in images
+                for img in _divs
             ]
         })
-        return images
+        return _divs
 
     def divs(self):
         log.trace({
@@ -124,17 +117,21 @@ class CaptureSet:
             ],
             'original_size': self.original.size,
         })
+        image = self.sharpen(self.original)
         if self._divs:
             return self._divs
         if not self.parts:
-            self._divs = [self.original]
+            self._divs = [image]
             return self._divs
         else:
             self._divs = [
-                self.original.crop(
-                    part.pixels(*self.original.size)
+                image,
+                *(
+                    image.crop(
+                        part.pixels(*image.size)
+                    )
+                    for part in self.parts
                 )
-                for part in self.parts
             ]
             return self._divs
 
