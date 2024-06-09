@@ -21,7 +21,6 @@ from util import (
     clear_tty,
     Color,
     nothing,
-    merge_texts,
 )
 from typing import (
     Iterable,
@@ -376,7 +375,7 @@ class App:
         with self.tooltip.hidden() if self.gui else nothing():
             img = ImageGrab.grab(region)
             self.capture = self._capture_set(img)
-        text = merge_texts([
+        text = ''.join([
             self._ocr(img)
             for img in self.capture.images()
         ])
@@ -437,7 +436,7 @@ class App:
             'message': 'OCR results',
             'texts': texts
         })
-        return merge_texts(texts)
+        return ''.join(texts)
 
     def should_capture(self):
         self.x, self.y = pyautogui.position()

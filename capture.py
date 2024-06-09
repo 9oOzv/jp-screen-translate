@@ -90,10 +90,6 @@ class CaptureSet:
         ]
 
     def preview(self):
-        _original = scale_image(
-            self.original,
-            max_dimension=self.preview_size
-        )
         _divs = [
             scale_image(
                 div,
@@ -101,19 +97,15 @@ class CaptureSet:
             )
             for div in self.divs()
         ]
-        images = [
-            _original,
-            *_divs
-        ]
         log.debug({
             'message': 'CaptureSet preview',
             'preview_size': self.preview_size,
-            'image sizes': [
+            'image_sizes': [
                 img.size
-                for img in images
+                for img in _divs
             ]
         })
-        return images
+        return _divs
 
     def divs(self):
         log.trace({
@@ -131,10 +123,13 @@ class CaptureSet:
             return self._divs
         else:
             self._divs = [
-                self.original.crop(
-                    part.pixels(*self.original.size)
+                self.original,
+                *(
+                    self.original.crop(
+                        part.pixels(*self.original.size)
+                    )
+                    for part in self.parts
                 )
-                for part in self.parts
             ]
             return self._divs
 

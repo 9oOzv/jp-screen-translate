@@ -70,20 +70,6 @@ def _insert(a: str, b: str, i: int) -> None:
     return a[:i] + b + a[i+len(b):]
 
 
-def merge_texts(texts: Iterable[str]) -> str:
-    texts = [t for t in texts if t]
-    n = sum(len(t) for t in texts)
-    text = ' ' * n
-    for t in texts:
-        i = text.index(' ')
-        for s in sliding_window(t, 2):
-            if s[0] == ' ' or s in text:
-                continue
-            text = _insert(text, s, i)
-            i += 1
-    return text
-
-
 def scale_image(
     img: Image,
     scale: float = None,
