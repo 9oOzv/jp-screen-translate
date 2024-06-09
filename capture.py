@@ -1,6 +1,5 @@
 from PIL import (
     Image,
-    ImageFilter
 )
 from typing import Iterable, TypeAlias
 from util import scale_image
@@ -117,18 +116,17 @@ class CaptureSet:
             ],
             'original_size': self.original.size,
         })
-        image = self.sharpen(self.original)
         if self._divs:
             return self._divs
         if not self.parts:
-            self._divs = [image]
+            self._divs = [self.original]
             return self._divs
         else:
             self._divs = [
-                image,
+                self.original,
                 *(
-                    image.crop(
-                        part.pixels(*image.size)
+                    self.original.crop(
+                        part.pixels(*self.original.size)
                     )
                     for part in self.parts
                 )

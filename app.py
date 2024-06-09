@@ -21,7 +21,6 @@ from util import (
     clear_tty,
     Color,
     nothing,
-    merge_texts,
 )
 from typing import (
     Iterable,
@@ -437,7 +436,7 @@ class App:
             'message': 'OCR results',
             'texts': texts
         })
-        return merge_texts(texts)
+        return ''.join(texts)
 
     def should_capture(self):
         self.x, self.y = pyautogui.position()
