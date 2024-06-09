@@ -75,9 +75,16 @@ class Tooltip(tk.Tk):
     # Need to keep a reference to the images. Otherwise they will be garbage
     # collected or something.
     photoImages = []
+    font_size: float = 12
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        font_size: float = 12,
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
+        self.font_size = font_size
         bg = 'black'
         self.overrideredirect(True)
         self.attributes('-alpha', 0.9)
@@ -139,7 +146,10 @@ class Tooltip(tk.Tk):
             label = tk.Label(
                 self.frame,
                 text=text['text'],
-                font=("Helvetica", 12),
+                font=(
+                    "Helvetica",
+                    self.font_size,
+                ),
                 justify='left',
                 bg='black',
                 fg=text['color']
@@ -205,6 +215,7 @@ class App:
         kana_column (int): The width of the kana column in the tooltip.
         gloss_column (int): The width of the gloss column in the tooltip.
         capture_column (int): The width of the capture column in the tooltip.
+        font_size (float): The font size to use in the tooltip.
     """
 
     capture_size_x: int = 160
@@ -243,6 +254,7 @@ class App:
     capture_column: int = 36
     text: str = ''
     capture_text: str = ''
+    font_size: float = 11
 
     def __init__(
         self,
@@ -271,6 +283,7 @@ class App:
         kana_column: int = kana_column,
         gloss_column: int = gloss_column,
         capture_column: int = capture_column,
+        font_size: float = font_size,
     ):
         self.capture_size_x = capture_size_x
         self.capture_size_y = capture_size_y
@@ -305,6 +318,7 @@ class App:
         self.kana_column = kana_column
         self.gloss_column = gloss_column
         self.capture_column = capture_column
+        self.font_size = font_size
         configure_logger('app', level=self.log_level, pretty=self.pretty)
         configure_logger(None, level=self.log_level, pretty=self.pretty)
 
@@ -619,7 +633,7 @@ class App:
             return None
         if self._tooltip:
             return self._tooltip
-        self._tooltip = Tooltip()
+        self._tooltip = Tooltip(font_size=self.font_size)
         return self._tooltip
 
 
