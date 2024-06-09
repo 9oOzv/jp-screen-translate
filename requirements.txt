@@ -1,6 +1,7 @@
 wheel
 setuptools
 pillow
+git+https://github.com/letuananh/puchikarui.git
 jamdict
 git+https://github.com/neocl/jamdict_data.git@refs/pull/2/merge
 pyautogui
