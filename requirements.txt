@@ -9,3 +9,8 @@ fire
 hsluv
 colorama
 numpy
+git+https://github.com/9oOzv/pyutils8ccr.git
+pytesseract
+openai
+pynput
+easyocr

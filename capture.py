@@ -3,9 +3,10 @@ from PIL import (
 )
 from typing import Iterable, TypeAlias
 from util import scale_image
-from logging import getLogger
 
-log = getLogger('app')
+from pyutils8ccr.log import (
+    log,
+)
 
 Region: TypeAlias = tuple[int, int, int, int]
 
@@ -79,14 +80,17 @@ class CaptureSet:
         step_x = 1 / (divs_x + 1)
         step_y = 1 / (divs_y + 1)
         return [
-            FractionalPartition(
-                i * step_x,
-                j * step_y,
-                (i + 2) * step_x,
-                (j + 2) * step_y,
+            FractionalPartition(0.0, 0.0, 1.0, 1.0),
+            *(
+                FractionalPartition(
+                    i * step_x,
+                    j * step_y,
+                    (i + 2) * step_x,
+                    (j + 2) * step_y,
+                )
+                for i in range(divs_x)
+                for j in range(divs_y)
             )
-            for i in range(divs_x)
-            for j in range(divs_y)
         ]
 
     def preview(self):
@@ -108,7 +112,7 @@ class CaptureSet:
         return _divs
 
     def divs(self):
-        log.trace({
+        log.debug({
             'message': 'CaptureSet divs',
             'parts': [
                 p.pixels(*self.original.size)
@@ -123,13 +127,10 @@ class CaptureSet:
             return self._divs
         else:
             self._divs = [
-                self.original,
-                *(
-                    self.original.crop(
-                        part.pixels(*self.original.size)
-                    )
-                    for part in self.parts
+                self.original.crop(
+                    part.pixels(*self.original.size)
                 )
+                for part in self.parts
             ]
             return self._divs
 

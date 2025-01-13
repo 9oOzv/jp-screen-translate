@@ -5,16 +5,17 @@ from util import (
     all_substrings,
     strings
 )
-from logging import getLogger
+from pyutils8ccr.log import (
+    log,
+)
 from typing import (
     Iterable,
     TypeAlias
 )
 
 
-log = getLogger('app')
-
-KanjiInfos: TypeAlias = Iterable[dict[str, list[str]]]
+KanjiInfo: TypeAlias = dict[str, list[str]]
+KanjiInfos: TypeAlias = Iterable[KanjiInfo]
 
 
 class KanjiTranslator:
@@ -93,7 +94,7 @@ class KanjiTranslator:
             for seq in all_substrings(jpn_seq, 5)
         ])
         kanji_seqs = [s for s in seqs if self.sane_kanji_seq(s)]
-        log.trace({'kanji_seqs': kanji_seqs})
+        log.debug({'kanji_seqs': kanji_seqs})
         infos = [
             info
             for kanji in kanji_seqs
@@ -104,5 +105,5 @@ class KanjiTranslator:
             key=self.info_sort_key,
             reverse=True
         )
-        log.trace({'sorted_infos': sorted_infos})
+        log.debug({'sorted_infos': sorted_infos})
         return sorted_infos

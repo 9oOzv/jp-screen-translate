@@ -5,6 +5,9 @@ from hsluv import hsluv_to_rgb
 from contextlib import contextmanager
 from typing import Iterable
 from PIL import Image
+from pathlib import Path
+from functools import cache
+import asyncio
 
 
 def first(iterable):
@@ -115,3 +118,16 @@ class Color:
         sat = randint(0, 100) if sat is None else sat
         lum = randint(0, 100) if lum is None else lum
         return Color.from_hsluv(hue, sat, lum)
+
+@cache
+def cached_read(file: str | Path, mode: str):
+    with open(file, mode) as f:
+        return f.read()
+
+
+async def ensure_coro(f):
+    if hasattr(f, '__await__'):
+        return await f
+    if asyncio.iscoroutinefunction(f):
+        return await f()
+    return f
